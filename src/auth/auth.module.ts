@@ -5,7 +5,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { DeviceToken } from './device-token.entity';
-//import { UserModule } from '../users/users.module';
+import { UsersModule } from '../users/users.module';
+
 
 @Module({
   imports: [
@@ -13,14 +14,16 @@ import { DeviceToken } from './device-token.entity';
     UsersModule,
     TypeOrmModule.forFeature([DeviceToken]),
     JwtModule.registerAsync({
-      imports: [ConfigModule],
+      imports: [UsersModule, ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_ACCESS_SECRET'),
-        signOptions: { 
-          expiresIn: config.get<string> ('JWT_ACCESS_TTL') ?? '900s',
+      useFactory: (config: ConfigService) => {
+        const raw = config.get<string>('JWT_ACCESS_TTL') ?? '900';
+        const ttlSeconds = Number(raw.replace(/[^0-9]/g, '')) || 900;
+        return {
+          secret: config.get<string>('JWT_ACCESS_SECRET'),
+          signOptions: { expiresIn: ttlSeconds},
         }
-      }) 
+      }    
     })
   ],
   providers: [AuthService],
