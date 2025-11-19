@@ -18,13 +18,14 @@ export class AuthController {
 
     @Post('login')
     async login(@Body() dto: LoginDto) {
-        // Делегируем всю бизнес-логику в сервис
+        // бизнес логику в сервис засунул 
         return this.auth.login(dto.email, dto.password, dto.deviceid);
     }
 
     @Post('refresh')
     async refresh(@Body() dto: RefreshDto) { 
-        return { todo: 'impliment refresh', received: dto};
+    // diveceid строго привязывает рефреш  к конкретному устройству
+        return this.auth.refresh(dto.refreshToken, dto.deviceId);
     }
 
     @Post('logout')

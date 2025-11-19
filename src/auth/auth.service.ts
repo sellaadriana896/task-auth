@@ -20,6 +20,91 @@ export class AuthService {
         @InjectRepository(DeviceToken) private readonly deviceRepo: Repository<DeviceToken>,
     ) {}
 
+    async refresh (refreshToken: string, deviceId?: string) { 
+        let payload: any;
+        try { 
+            payload = this.jwt.verify(refreshToken, {
+                secret: this.config.get<string>('JWT_REFRESH_SECRET'),
+            });
+            //ожидаем саб (UserID Email JTI iat exp)
+    }
+    catch { 
+        throw new UnauthorizedException ('Invalid refresh token signature');
+    }
+
+    const userId: number = payload.sub; 
+    const oldJti: string = payload.jti; 
+    //контроль целостности пейлоада
+    if (!userId || !oldJti) { 
+        throw new UnauthorizedException ('Malformed refresh payload');
+    }
+
+    //для строгого разделения по утсройствам deviceid обязателен
+    if (!deviceId) { 
+        throw new UnauthorizedException ('Missing deviceId'); 
+    }
+
+    const record = await this.deviceRepo.findOne ({
+        where: { user: { id: userId }, deviceId }, 
+        relations: { user: true }, 
+    }); 
+    if (!record) {
+        throw new UnauthorizedException ('Device token revoked'); 
+    }
+
+    if (record.isRevoked) { 
+        throw new UnauthorizedException ('Device token revoked');
+    }
+
+    const now  = new Date(); 
+    if (record.expireAt && record.expireAt.getTime() < now.getTime()) { 
+        throw new UnauthorizedException ('Device token expired');
+    }
+
+    if (record.jti !== oldJti) { 
+        throw new UnauthorizedException ('Refresh jti mismatch (rotated or invalid)')
+    }
+
+
+    //сверка хеша
+    const hashMatches = await bcrypt.compare (refreshToken, record.refreshTokenHash);
+    if (!hashMatches) { 
+        throw new UnauthorizedException ('Invalid refresh token (hash mismatch)');
+    }
+    
+    const user = record.user; 
+    if (!user) { 
+        throw new UnauthorizedException ('User not found'); 
+    }
+
+    // после всех проверк генерировые новый jti и пару токенов
+
+    const newJti = uuidv4(); 
+    const newAccessToken = this.generateAccessToken(user); 
+    const newRefreshToken = this.generateRefreshToken(user, newJti); 
+    const newHash = await this.hashRefreshToken (newRefreshToken);
+
+    const rawTtl = this.config.get<string>('JWT_REFRESH_TTL') ?? '2592000'; 
+    const ttlSeconds = Number(rawTtl.replace(/[^0-9]/g, '')) || 2592000; 
+    const newExpireAt = new Date(now.getTime() + ttlSeconds * 1000); 
+
+    record.jti = newJti; 
+    record.refreshTokenHash = newHash; 
+    record.lastUsedsAt = now; 
+    record.expireAt = newExpireAt; 
+
+    await this.deviceRepo.save (record);
+
+    return {
+        user: { id: user.id, email: user.email}, 
+        deviceId, 
+        accessToken: newAccessToken, 
+        refreshToken: newRefreshToken, 
+        accessExpiresIn: this.config.get<string>('JWT_ACCESS_TTL'),
+        refreshExpiresIn: this.config.get<string>('JWT_REFRESH_TTL'),
+        };
+    }
+
     private async hashRefreshToken (raw: string): Promise <string> { 
         //bcrypt.hash (исх.строка, соль)
         return bcrypt.hash (raw, 10); 
