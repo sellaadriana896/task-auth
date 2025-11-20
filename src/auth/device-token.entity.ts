@@ -21,10 +21,10 @@ export class DeviceToken {
     @Column()
     deviceId!: string; //UUID устройства 
 
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'text' })
     userAgent!: string | null; 
 
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'text' })
     ip!: string | null; 
 
     @Index()

@@ -11,5 +11,5 @@ export class LoginDto {
 
     @IsOptional()
     @IsString()
-    deviceid?: string; // тут тип клиент можем прислать идентификатор устройства поле необязательное
+    deviceId?: string; // идентификатор устройства (опционально)
 }
