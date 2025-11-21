@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { LogoutDto } from './dto/logout.dto'; 
 
 @Controller('auth')
 export class AuthController {
@@ -71,9 +72,35 @@ export class AuthController {
     }
 
     @Post('logout')
-    async logout() {
-        return { todo: 'implement logout' };
+    async logout(
+        @Body() dto: LogoutDto,
+        @Req() req: Request, 
+        @Res({ passthrough: true }) res: Response,
+    ) {
+        const incomingCookie = (req as any).cookies?.refreshToken;
+        const headerCookie: string | undefined = (req.headers as any)?.cookie;
+        const headerToken = headerCookie
+            ?.split(';')
+            .map((s) => s.trim())
+            .find((s) => s.startsWith('refreshToken='))
+            ?.substring('refreshToken='.length);
+        const refreshToken = incomingCookie || headerToken;
+
+        const deviceId =dto.deviceId;
+
+        await this.auth.logout(refreshToken, deviceId);
+
+        res.clearCookie('refreshToken',
+            {
+                httpOnly: true,
+                secure: false, 
+                sameSite: 'strict',
+                path: '/',
+            });
+        
+        return { success: true };
     }
+    
 
     @Post('logout-all')
     async logoutAll() {

@@ -196,4 +196,27 @@ export class AuthService {
         if (!ok) throw new UnauthorizedException('Invalid credentials');
         return user;
     }
+
+    async logout (refreshToken: string, deviceId: string): Promise<void> {
+        let payload: any; 
+        try { 
+            payload = this.jwt.verify(refreshToken, { 
+                secret: this.config.get<string>('JWT_REFRESH_SECRET'), 
+            });
+        } catch { 
+            return;
+        }
+
+        const userId: number = payload.sub;
+
+        const record = await this.deviceRepo.findOne ({ 
+            where: { user: { id: userId}, deviceId},
+            relations: { user: true},
+        });
+
+        if (!record) return; 
+
+        record.isRevoked = true; 
+        await this.deviceRepo.save (record);
+    } 
 }
