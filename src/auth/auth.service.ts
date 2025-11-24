@@ -197,26 +197,37 @@ export class AuthService {
         return user;
     }
 
-    async logout (refreshToken: string, deviceId: string): Promise<void> {
-        let payload: any; 
-        try { 
-            payload = this.jwt.verify(refreshToken, { 
-                secret: this.config.get<string>('JWT_REFRESH_SECRET'), 
+    async logout(refreshToken: string, deviceId: string): Promise<void> {
+        let payload: any;
+        try {
+            payload = this.jwt.verify(refreshToken, {
+                secret: this.config.get<string>('JWT_REFRESH_SECRET'),
             });
-        } catch { 
+        } catch {
             return;
         }
-
-        const userId: number = payload.sub;
-
-        const record = await this.deviceRepo.findOne ({ 
-            where: { user: { id: userId}, deviceId},
-            relations: { user: true},
+        const userId = payload.sub;
+        if (!userId) return;
+        const record = await this.deviceRepo.findOne({
+            where: { user: { id: userId }, deviceId },
+            relations: { user: true },
         });
+        if (!record) return;
+        record.isRevoked = true;
+        await this.deviceRepo.save(record);
+    }
 
-        if (!record) return; 
-
-        record.isRevoked = true; 
-        await this.deviceRepo.save (record);
+    async logoutAll(refreshToken: string): Promise<void> {
+        let payload: any;
+        try {
+            payload = this.jwt.verify(refreshToken, {
+                secret: this.config.get<string>('JWT_REFRESH_SECRET'),
+            });
+        } catch {
+            return;
+        }
+        const userId = payload.sub;
+        if (!userId) return;
+        await this.deviceRepo.update({ user: { id: userId } }, { isRevoked: true });
     } 
 }
