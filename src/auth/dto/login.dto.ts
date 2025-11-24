@@ -9,7 +9,5 @@ export class LoginDto {
     @MaxLength(72)
     password!: string;
 
-    @IsOptional()
-    @IsString()
-    deviceId?: string; // идентификатор устройства (опционально)
+    // deviceId удалён, теперь берётся только из cookie
 }

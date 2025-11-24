@@ -30,6 +30,13 @@ export class AuthController {
 
         const result = await this.auth.login(dto.email, dto.password, deviceId);
 
+        res.cookie('deviceId', deviceId, { 
+            httpOnly: true, 
+            secure: false, 
+            sameSite: 'strict', 
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+        });
+
         res.cookie('refreshToken', result.refreshToken, {
             httpOnly: true,
             secure: false,
@@ -38,7 +45,6 @@ export class AuthController {
         });
         return {
             user: result.user,
-            deviceId: result.deviceId,
             accessToken: result.accessToken,
             accessExpiresIn: result.accessExpiresIn,
         };
@@ -50,6 +56,7 @@ export class AuthController {
         @Req() req: Request,
         @Res({ passthrough: true }) res: Response,
     ) {
+        const deviceId = (req as any).cookies?.deviceId;
         const incomingCookie = (req as any).cookies?.refreshToken; // иногда тип не содержит печенья
         const headerCookie: string | undefined = (req.headers as any)?.cookie;
         const headerToken = headerCookie
@@ -61,7 +68,7 @@ export class AuthController {
         if (!refreshToken) {
             throw new BadRequestException('Missing refresh token');
         }
-        const deviceId = dto.deviceId;
+        // deviceId теперь только из cookie
         const result = await this.auth.refresh(refreshToken, deviceId);
         res.cookie('refreshToken', result.refreshToken, {
             httpOnly: true,
@@ -71,7 +78,6 @@ export class AuthController {
         });
         return {
             user: result.user,
-            deviceId: result.deviceId,
             accessToken: result.accessToken,
             accessExpiresIn: result.accessExpiresIn,
         };
@@ -83,6 +89,7 @@ export class AuthController {
         @Req() req: Request, 
         @Res({ passthrough: true }) res: Response,
     ) {
+        const deviceId = (req as any).cookies?.deviceId;
         const incomingCookie = (req as any).cookies?.refreshToken;
         const headerCookie: string | undefined = (req.headers as any)?.cookie;
         const headerToken = headerCookie
@@ -92,18 +99,14 @@ export class AuthController {
             ?.substring('refreshToken='.length);
         const refreshToken = incomingCookie || headerToken;
 
-        const deviceId =dto.deviceId;
-
+        // deviceId теперь только из cookie
         await this.auth.logout(refreshToken, deviceId);
-
-        res.clearCookie('refreshToken',
-            {
-                httpOnly: true,
-                secure: false, 
-                sameSite: 'strict',
-                path: '/',
-            });
-        
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: false, 
+            sameSite: 'strict',
+            path: '/',
+        });
         return { success: true };
     }
     
@@ -111,11 +114,12 @@ export class AuthController {
     @Post('logout-all')
     async logoutAll(@Req() req: Request, @Res ({passthrough: true}) res: Response) 
     {
+        const deviceId = (req as any).cookies?.deviceId;
         const incomingCookie = (req as any).cookies?.refreshToken; 
         const headerCookie: string | undefined = (req.headers as any)?.cookie;
         const headerToken =  headerCookie 
             ?.split(';')
-            .map((s) => s.trim)
+            .map((s) => s.trim())
             .find((s) => s.startsWith('refreshToken'))
             ?.substring('refreshToken='.length);
         const refreshToken = incomingCookie || headerToken;

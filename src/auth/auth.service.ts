@@ -148,17 +148,18 @@ export class AuthService {
 
     async login(email: string, password: string, deviceId?: string) {
         const user = await this.validateUser(email, password);
-        const finalDeviceId = deviceId || uuidv4();
         const jti = uuidv4();
 
         const accessToken = this.generateAccessToken(user);
         const refreshToken = this.generateRefreshToken(user, jti);
 
-        await this.saveDeviceToken(user, finalDeviceId, jti, refreshToken);
+        if (!deviceId) {
+            throw new UnauthorizedException('Missing deviceId');
+        }
+        await this.saveDeviceToken(user, deviceId, jti, refreshToken);
 
         return {
             user: { id: user.id, email: user.email },
-            deviceId: finalDeviceId,
             accessToken,
             refreshToken,
             accessExpiresIn: this.config.get<string>('JWT_ACCESS_TTL'),

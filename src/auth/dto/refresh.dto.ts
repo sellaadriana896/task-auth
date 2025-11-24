@@ -8,6 +8,5 @@ export class RefreshDto {
     @IsJWT()
     refreshToken?: string;
     
-    @IsString()
-    deviceId!: string;
+    // deviceId удалён, теперь берётся только из cookie
 }

@@ -1,6 +1,5 @@
 import { IsString } from 'class-validator';
 
 export class LogoutDto { 
-    @IsString ()
-    deviceId!: string;
+    // deviceId удалён, теперь берётся только из cookie
 }
