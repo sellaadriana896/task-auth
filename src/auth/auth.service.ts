@@ -9,6 +9,21 @@ import { User } from '../users/user.entity';
 import {v4 as uuidv4} from 'uuid'; 
 import * as bcrypt from 'bcrypt'; 
 
+function parseTtl(raw: string | undefined, fallbackSeconds: number): number {
+    if (!raw) return fallbackSeconds;
+    const match = raw.trim().match(/^(\d+)([smhd])?$/i);
+    if (!match) return fallbackSeconds;
+    const value = Number(match[1]);
+    const unit = match[2]?.toLowerCase();
+    switch (unit) {
+        case 's': return value;
+        case 'm': return value * 60;
+        case 'h': return value * 3600;
+        case 'd': return value * 86400;
+        default: return value;
+    }
+}
+
 
 
 @Injectable()
@@ -26,11 +41,12 @@ export class AuthService {
             payload = this.jwt.verify(refreshToken, {
                 secret: this.config.get<string>('JWT_REFRESH_SECRET'),
             });
-            //ожидаем саб (UserID Email JTI iat exp)
-    }
-    catch { 
-        throw new UnauthorizedException ('Invalid refresh token signature');
-    }
+        } catch (e: any) {
+            if (e?.name === 'TokenExpiredError') {
+                throw new UnauthorizedException('Refresh token expired');
+            }
+            throw new UnauthorizedException('Invalid refresh token signature');
+        }
 
     const userId: number = payload.sub; 
     const oldJti: string = payload.jti; 
@@ -84,8 +100,8 @@ export class AuthService {
     const newRefreshToken = this.generateRefreshToken(user, newJti); 
     const newHash = await this.hashRefreshToken (newRefreshToken);
 
-    const rawTtl = this.config.get<string>('JWT_REFRESH_TTL') ?? '2592000'; 
-    const ttlSeconds = Number(rawTtl.replace(/[^0-9]/g, '')) || 2592000; 
+    const rawTtl = this.config.get<string>('JWT_REFRESH_TTL'); 
+    const ttlSeconds = parseTtl(rawTtl, 2592000); 
     const newExpireAt = new Date(now.getTime() + ttlSeconds * 1000); 
 
     record.jti = newJti; 
@@ -97,12 +113,11 @@ export class AuthService {
 
     return {
         user: { id: user.id, email: user.email}, 
-        deviceId, 
         accessToken: newAccessToken, 
         refreshToken: newRefreshToken, 
         accessExpiresIn: this.config.get<string>('JWT_ACCESS_TTL'),
         refreshExpiresIn: this.config.get<string>('JWT_REFRESH_TTL'),
-        };
+    };
     }
 
     private async hashRefreshToken (raw: string): Promise <string> { 
@@ -119,8 +134,8 @@ export class AuthService {
 
         const now = new Date();
         //ttl из env
-        const rawTtl = this.config.get<string>('JWT_REFRESH_TTL') ?? '2592000';
-        const ttlSeconds = Number(rawTtl.replace(/[^0-9]/g,'')) || 2592000;
+        const rawTtl = this.config.get<string>('JWT_REFRESH_TTL');
+        const ttlSeconds = parseTtl(rawTtl, 2592000);
         const expiresAt = new Date(now.getTime() + ttlSeconds * 1000);
 
             if (!record) {
@@ -172,16 +187,19 @@ export class AuthService {
     }
 
     generateAccessToken(user: User): string {
-        return this.jwt.sign(this.buildAccessPayload(user));
+        const payload = this.buildAccessPayload(user);
+        const secret = this.config.get<string>('JWT_ACCESS_SECRET')!;
+        const raw = this.config.get<string>('JWT_ACCESS_TTL');
+        const ttlSeconds = parseTtl(raw, 900);
+        return this.jwt.sign(payload, { secret, expiresIn: ttlSeconds });
     }
 
     generateRefreshToken(user: User, jti: string): string {
         const payload = { sub: user.id, email: user.email, jti };
-        // В .env используется ключ JWT_REFRESH_SECRET (без дефиса)
         const secret = this.config.get<string>('JWT_REFRESH_SECRET')!;
-        const raw = this.config.get<string>('JWT_REFRESH_TTL') ?? '2592000'; // 30 дней (секунды)
-        const ttl = Number(raw.replace(/[^0-9]/g, '')) || 2592000;
-        return this.jwt.sign(payload, { secret, expiresIn: ttl });
+        const raw = this.config.get<string>('JWT_REFRESH_TTL');
+        const ttlSeconds = parseTtl(raw, 2592000);
+        return this.jwt.sign(payload, { secret, expiresIn: ttlSeconds });
     }
 
     async register(email: string, password: string): Promise<User> {
