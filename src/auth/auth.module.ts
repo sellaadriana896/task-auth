@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { DeviceToken } from './device-token.entity';
 import { UsersModule } from '../users/users.module';
+import { JwtCookieGuard } from './guards/jwt-cookie.guard';
 
 
 @Module({
@@ -26,8 +27,8 @@ import { UsersModule } from '../users/users.module';
       }    
     })
   ],
-  providers: [AuthService],
+  providers: [AuthService, JwtCookieGuard],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, JwtCookieGuard],
 })
 export class AuthModule {}
