@@ -1,13 +1,10 @@
-export enum TaskStatus { 
-    TODO = 'todo',
-    IN_PROGRESS = 'in_progress',
-    DONE = 'done',
-    BLOCKED = 'blocked',
-}
 
-export const TaskStatusValues: TaskStatus[] = [
-    TaskStatus.TODO,
-    TaskStatus.IN_PROGRESS,
-    TaskStatus.DONE,
-    TaskStatus.BLOCKED,
-]
+export const TASK_STATUS = [
+    'todo',
+    'in_progress',
+    'done',
+    'blocked',
+] as const;
+
+export type TaskStatus = typeof TASK_STATUS[number];
+export const TaskStatusValues = TASK_STATUS;

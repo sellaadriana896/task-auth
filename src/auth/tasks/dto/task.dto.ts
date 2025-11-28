@@ -1,6 +1,6 @@
-import { IsInt, Min, IsOptional, IsString, Length, IsEnum, IsArray, ArrayNotEmpty, IsDateString } from 'class-validator';
-import { TaskStatus } from '../enums/task-status.enum';
-import { TaskPriority } from '../enums/task-priority.enum';
+import { IsOptional, IsString, Length, IsDateString, IsInt, Min, IsIn } from 'class-validator';
+import { TASK_STATUS, type TaskStatus } from '../enums/task-status.enum';
+import { TASK_PRIORITY, type TaskPriority } from '../enums/task-priority.enum';
 
 export class CreateTaskDto {
   @IsString()
@@ -12,11 +12,11 @@ export class CreateTaskDto {
   description?: string;
 
   @IsOptional()
-  @IsEnum(TaskStatus)
+  @IsIn(TASK_STATUS)
   status?: TaskStatus;
 
   @IsOptional()
-  @IsEnum(TaskPriority)
+  @IsIn(TASK_PRIORITY)
   priority?: TaskPriority;
 
   @IsOptional()
@@ -24,19 +24,9 @@ export class CreateTaskDto {
   dueDate?: string;
 
   @IsOptional()
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsString({ each: true })
-  tags?: string[];
-
   @IsInt()
   @Min(1)
-  listId!: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  position?: number;
+  listId?: number;
 }
 
 export class UpdateTaskDto {
@@ -50,11 +40,11 @@ export class UpdateTaskDto {
   description?: string;
 
   @IsOptional()
-  @IsEnum(TaskStatus)
+  @IsIn(TASK_STATUS)
   status?: TaskStatus;
 
   @IsOptional()
-  @IsEnum(TaskPriority)
+  @IsIn(TASK_PRIORITY)
   priority?: TaskPriority;
 
   @IsOptional()
@@ -62,34 +52,18 @@ export class UpdateTaskDto {
   dueDate?: string;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  tags?: string[];
-}
-
-export class MoveTaskDto {
   @IsInt()
   @Min(1)
-  targetListId!: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  targetPosition?: number;
+  listId?: number;
 }
 
 export class QueryTasksDto {
   @IsOptional()
-  @IsEnum(TaskStatus)
+  @IsIn(TASK_STATUS)
   status?: TaskStatus;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  listId?: number;
-
-  @IsOptional()
-  @IsEnum(TaskPriority)
+  @IsIn(TASK_PRIORITY)
   priority?: TaskPriority;
 
   @IsOptional()
@@ -118,4 +92,9 @@ export class QueryTasksDto {
   @IsOptional()
   @IsString()
   sort?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  listId?: number;
 }

@@ -1,35 +1,16 @@
-import { IsInt, Min, IsOptional, IsString, Length } from 'class-validator';
+import { IsOptional, IsString, Length } from 'class-validator';
 
 export class CreateListDto {
-	@IsString()
-	@Length(1, 100)
-	name!: string;
-
-	@IsOptional()
-	@IsInt()
-	@Min(0)
-	order?: number;
+  @IsString()
+  @Length(1, 100)
+  name!: string;
 }
 
 export class UpdateListDto {
-	@IsOptional()
-	@IsString()
-	@Length(1, 100)
-	name?: string;
-
-	@IsOptional()
-	@IsInt()
-	@Min(0)
-	order?: number;
+  @IsOptional()
+  @IsString()
+  @Length(1, 100)
+  name?: string;
 }
 
-export class ReorderListDto {
-	@IsInt()
-	@Min(1)
-	listId!: number;
-
-	@IsInt()
-	@Min(0)
-	newOrder!: number;
-}
 

@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { DeviceToken } from './device-token.entity';
 import { User } from '../users/user.entity';
-import {v4 as uuidv4} from 'uuid'; 
+import { randomUUID as uuidv4 } from 'crypto'; 
 import * as bcrypt from 'bcrypt'; 
 
 function parseTtl(raw: string | undefined, fallbackSeconds: number): number {

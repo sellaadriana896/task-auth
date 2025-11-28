@@ -11,28 +11,31 @@ export class JwtCookieGuard implements CanActivate {
 
     canActivate (context: ExecutionContext): boolean { 
         const req = context.switchToHttp().getRequest();
-        //достаем куку аццесс токена должен быть включенны кука парсер
-        const token: string | undefined = req.cookies?.accessToken;
 
-        if (!token) { 
-            throw new UnauthorizedException ('Missing access token');
+        let token: string | undefined = req.cookies?.accessToken;
+        if (!token) {
+            const auth = req.headers['authorization'];
+            if (typeof auth === 'string' && auth.startsWith('Bearer ')) {
+                token = auth.substring(7).trim();
+            }
         }
 
-        try { 
-            const payload = this.jwt.verify (token, {
-                secret: this.config.get <string>('JWT_ACCESS_SECRET'),
+        if (!token) {
+            throw new UnauthorizedException('Missing access token');
+        }
+
+        try {
+            const payload = this.jwt.verify(token, {
+                secret: this.config.get<string>('JWT_ACCESS_SECRET'),
             });
-            //теперь распарсенный пользователь в req.user для контроллера
             req.user = { id: payload.sub, email: payload.email };
             return true;
-        } catch (e: any) { 
-            if (e?.name === 'TokenExpiredError') { 
-                throw new UnauthorizedException ('Access token expired');
+        } catch (e: any) {
+            if (e?.name === 'TokenExpiredError') {
+                throw new UnauthorizedException('Access token expired');
             }
             throw new UnauthorizedException('Invalid access token');
         }
-
-        
     }
 
 }

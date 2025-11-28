@@ -1,13 +1,10 @@
-export enum TaskPriority { 
-    LOW = 'low',
-    NORMAL = 'normal',
-    HIGH = 'high',
-    URGENT = 'urgent',
-}
+export const TASK_PRIORITY = [
+    'low',
+    'normal',
+    'high',
+    'urgent',
+] as const;
 
-export const TaskPriorityValues: TaskPriority[] = [
-    TaskPriority.LOW,
-    TaskPriority.NORMAL,
-    TaskPriority.HIGH,
-    TaskPriority.URGENT,
-]
+export type TaskPriority = typeof TASK_PRIORITY[number];
+
+export const TaskPriorityValues = TASK_PRIORITY;

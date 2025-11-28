@@ -7,53 +7,44 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
-import { TaskList } from './task-entities'; 
+import { TaskList } from './task-entities';
 import { User } from '../../../users/user.entity';
-import { TaskStatus } from '../enums/task-status.enum';
-import { TaskPriority } from '../enums/task-priority.enum';
+import { TASK_STATUS, type TaskStatus } from '../enums/task-status.enum';
+import { TASK_PRIORITY, type TaskPriority } from '../enums/task-priority.enum';
 
 @Entity()
-@Index(['listId', 'position'])
 @Index(['userId', 'status'])
+@Index(['userId', 'listId'])
 export class Task {
   @PrimaryGeneratedColumn()
-  id!: number; 
+  id!: number;
 
   @Column()
-  title!: string; 
-
+  title!: string;
 
   @Column({ type: 'text', nullable: true })
   description?: string | null;
 
-
-  @Column({ type: 'simple-enum', enum: TaskStatus, default: TaskStatus.TODO })
+  @Column({ type: 'simple-enum', enum: TASK_STATUS, default: 'todo' })
   status!: TaskStatus;
 
-
-  @Column({ type: 'simple-enum', enum: TaskPriority, default: TaskPriority.NORMAL })
+  @Column({ type: 'simple-enum', enum: TASK_PRIORITY, default: 'normal' })
   priority!: TaskPriority;
 
   @Column({ type: 'datetime', nullable: true })
   dueDate?: Date | null;
-
-  @Column({ type: 'simple-array', nullable: true })
-  tags?: string[] | null;
-
-  @Column({ type: 'integer', default: 0 })
-  position!: number;
-
-  @Column({ type: 'integer' })
-  listId!: number;
-
-  @ManyToOne(() => TaskList, (list) => list.tasks, { onDelete: 'CASCADE' })
-  list!: TaskList;
 
   @Column({ type: 'integer' })
   userId!: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   user!: User;
+
+  @Column({ type: 'integer', nullable: true })
+  listId?: number | null;
+
+  @ManyToOne(() => TaskList, { onDelete: 'SET NULL', nullable: true })
+  list?: TaskList | null;
 
   @CreateDateColumn()
   createdAt!: Date;
