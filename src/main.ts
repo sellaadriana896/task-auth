@@ -12,7 +12,6 @@ async function bootstrap() {
     origin: 'http://localhost:3000',
     credentials: true,
   });
-  
   app.useWebSocketAdapter(new WsAdapter(app));
   app.use(fingerprint());
   app.use(cookieParser()); 
