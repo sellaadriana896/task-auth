@@ -98,3 +98,31 @@ export class QueryTasksDto {
   @Min(1)
   listId?: number;
 }
+
+//замена задачи если поле не передано сервер сбросит его к нул
+export class PutTaskDto {
+  @IsString()
+  @Length(1, 200)
+  title!: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @IsOptional()
+  @IsIn(TASK_STATUS)
+  status?: TaskStatus;
+
+  @IsOptional()
+  @IsIn(TASK_PRIORITY)
+  priority?: TaskPriority;
+
+  @IsOptional()
+  @IsDateString()
+  dueDate?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  listId?: number | null;
+}

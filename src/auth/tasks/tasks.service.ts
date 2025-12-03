@@ -3,7 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task } from './entities/task.entity';
 import { TaskList } from './entities/task-entities';
-import { CreateTaskDto, UpdateTaskDto, QueryTasksDto } from './dto/task.dto';
+import { TasksGateway } from './tasks.gateway';
+import { CreateTaskDto, UpdateTaskDto, QueryTasksDto, PutTaskDto } from './dto/task.dto';
 
 @Injectable()
 export class TasksService {
@@ -12,6 +13,7 @@ export class TasksService {
         private readonly tasksRepo: Repository<Task>,
         @InjectRepository(TaskList)
         private readonly listsRepo: Repository<TaskList>,
+        private readonly gateway: TasksGateway,
     ) {}
 
     async create(dto: CreateTaskDto, userId: number): Promise<Task> {
@@ -30,7 +32,9 @@ export class TasksService {
             userId,
             listId,
         });
-        return this.tasksRepo.save(task);
+        const saved = await this.tasksRepo.save(task);
+        this.gateway.emitTaskUpdated({ action: 'patch', task: saved });
+        return saved;
     }
 
     // поиск одной задачи по id и пользователю
@@ -47,7 +51,9 @@ export class TasksService {
         const qb = this.tasksRepo.createQueryBuilder('t');
         qb.where('t.userId = :uid', { uid: userId });
 
-        if (dto.status) qb.andWhere('t.status = :status', { status: dto.status });
+        if (dto.status) {
+            qb.andWhere('t.status = :status', { status: dto.status });
+        }
         if (dto.priority)
             qb.andWhere('t.priority = :priority', { priority: dto.priority });
         if (dto.search) {
@@ -90,13 +96,25 @@ export class TasksService {
         userId: number,
     ): Promise<Task> {
         const task = await this.findById(id, userId);
-        if (dto.title != null) task.title = dto.title;
-        if (dto.description != null)
-            task.description = dto.description ? dto.description : null;
+        let changed = false;
+        if (dto.title != null) {
+            const prev = task.title;
+            const normalized = dto.title.trim();
+            task.title = normalized;
+            if (normalized !== prev) changed = true;
+        }
+        if (dto.description != null) {
+            const normalizedDesc = dto.description.trim();
+            task.description = normalizedDesc.length > 0 ? normalizedDesc : null;
+            changed = true;
+        }
         if (dto.status != null) task.status = dto.status;
+        if (dto.status != null) changed = true;
         if (dto.priority != null) task.priority = dto.priority;
+        if (dto.priority != null) changed = true;
         if (dto.dueDate !== undefined)
             task.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+        if (dto.dueDate !== undefined) changed = true;
         if (dto.listId !== undefined) {
             if (dto.listId === null) {
                 task.listId = null;
@@ -105,8 +123,51 @@ export class TasksService {
                 if (!list) throw new BadRequestException('List not found or not owned by user');
                 task.listId = list.id;
             }
+            changed = true;
         }
-        return this.tasksRepo.save(task);
+        // Если после нормализации и проверок никаких изменений не произошло — вернём как есть
+        if (!changed) {
+            return task;
+        }
+        const saved = await this.tasksRepo.save(task);
+        this.gateway.emitTaskUpdated({ action: 'patch', task: saved });
+        return saved;
+    }
+
+    async replace(
+        id: number,
+        dto: PutTaskDto,
+        userId: number,
+    ): Promise<Task> {
+        const existing = await this.findById(id, userId);
+
+        // дефолты
+        let listId: number | null = null;
+        if (Object.prototype.hasOwnProperty.call(dto, 'listId')) {
+            if (dto.listId === null || dto.listId === undefined) {
+                listId = null;
+            } else {
+                const list = await this.listsRepo.findOne({ where: { id: dto.listId, userId } });
+                if (!list) throw new BadRequestException('List not found or not owned by user');
+                listId = list.id;
+            }
+        }
+
+        const normalizedTitle = dto.title.trim();
+        const normalizedDesc = dto.description != null ? dto.description.trim() : '';
+
+        existing.title = normalizedTitle;
+        existing.description = normalizedDesc.length > 0 ? normalizedDesc : null;
+        existing.status = dto.status ?? 'todo';
+        existing.priority = dto.priority ?? 'normal';
+        existing.dueDate = Object.prototype.hasOwnProperty.call(dto, 'dueDate')
+            ? dto.dueDate ? new Date(dto.dueDate) : null
+            : null;
+        existing.listId = Object.prototype.hasOwnProperty.call(dto, 'listId') ? listId : null;
+
+        const saved = await this.tasksRepo.save(existing);
+        this.gateway.emitTaskUpdated({ action: 'put', task: saved });
+        return saved;
     }
 
     async remove(id: number, userId: number): Promise<void> {
