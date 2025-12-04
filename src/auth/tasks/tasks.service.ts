@@ -142,6 +142,7 @@ export class TasksService {
         const existing = await this.findById(id, userId);
 
         // дефолты
+
         let listId: number | null = existing.listId ?? null;
         if (dto.listId === null) {
             listId = null;
