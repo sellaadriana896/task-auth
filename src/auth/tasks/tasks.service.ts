@@ -143,13 +143,15 @@ export class TasksService {
 
         // дефолты
 
-        let listId: number | null = existing.listId ?? null;
-        if (dto.listId === null) {
-            listId = null;
-        } else if (typeof dto.listId === 'number') {
-            const list = await this.listsRepo.findOne({ where: { id: dto.listId, userId } });
-            if (!list) throw new BadRequestException('List not found or not owned by user');
-            listId = list.id;
+        let listId: number | null = null;
+        if (Object.prototype.hasOwnProperty.call(dto, 'listId')) {
+            if (dto.listId === null || dto.listId === undefined) {
+                listId = null;
+            } else {
+                const list = await this.listsRepo.findOne({ where: { id: dto.listId, userId } });
+                if (!list) throw new BadRequestException('List not found or not owned by user');
+                listId = list.id;
+            }
         }
 
         const normalizedTitle = dto.title.trim();
@@ -159,15 +161,24 @@ export class TasksService {
         existing.description = normalizedDesc.length > 0 ? normalizedDesc : null;
         existing.status = dto.status ?? 'todo';
         existing.priority = dto.priority ?? 'normal';
-        if (dto.dueDate === null) {
-            existing.dueDate = null;
-        } else if (typeof dto.dueDate === 'string') {
-            existing.dueDate = new Date(dto.dueDate);
-        }
-        existing.listId = listId;
+        existing.dueDate = Object.prototype.hasOwnProperty.call(dto, 'dueDate')
+            ? dto.dueDate ? new Date(dto.dueDate) : null
+            : null;
+        existing.listId = Object.prototype.hasOwnProperty.call(dto, 'listId') ? listId : null;
 
         const saved = await this.tasksRepo.save(existing);
         this.gateway.emitTaskUpdated({ action: 'put', task: saved });
+        return saved;
+    }
+
+    // отправка события только новому владельцу
+    async assignToUser(id: number, assigneeUserId: number, currentUserId: number): Promise<Task> {
+        const task = await this.findById(id, currentUserId);
+        if (task.userId === assigneeUserId) return task;
+        task.userId = assigneeUserId;
+        task.listId = null; // сбрасываем список, если он принадлежал старому владельцу
+        const saved = await this.tasksRepo.save(task);
+        this.gateway.emitTaskUpdated({ action: 'patch', task: saved });
         return saved;
     }
 
