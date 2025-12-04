@@ -44,11 +44,11 @@ export class DeviceToken {
     updatedAt!: Date;
 
     @Index()
-    @Column({nullable : true, type : 'datetime'})
+    @Column({ nullable: true, type: 'timestamp' })
     lastUsedsAt!: Date | null;
 
     @Index()
-    @Column({ nullable : true, type : 'datetime' })
+    @Column({ nullable: true, type: 'timestamp' })
     expireAt!: Date | null;
 }
 

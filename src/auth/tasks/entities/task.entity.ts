@@ -31,7 +31,7 @@ export class Task {
   @Column({ type: 'simple-enum', enum: TASK_PRIORITY, default: 'normal' })
   priority!: TaskPriority;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   dueDate?: Date | null;
 
   @Column({ type: 'integer' })
