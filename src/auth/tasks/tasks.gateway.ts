@@ -18,10 +18,8 @@ export class TasksGateway {
   constructor(private readonly redis: RedisService) {}
 
   emitTaskUpdated(payload: { action: 'patch' | 'put'; task: Task }) {
-    // шлем всем подключённым клиентам событие task.updated c джейсоном
     if (!this.server) return;
     const message = JSON.stringify({ event: 'task.updated', data: payload });
-    // Локальное широковещание
     this.server.clients.forEach((client: WebSocket) => {
       try {
         if (client.readyState === WebSocket.OPEN) client.send(message);
@@ -29,14 +27,16 @@ export class TasksGateway {
         this.logger.warn(`WS broadcast send failed: ${String(err)}`);
       }
     });
-    // Публикация в Redis (для масштабирования через Pub/Sub)
     this.redis
       .publish('ws:task.updated', message)
       .catch((err) => this.logger.warn(`Redis publish failed: ${String(err)}`));
   }
+
   handleConnection(client: WebSocket): void {
     try {
-      client.send(JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }));
+      client.send(
+        JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }),
+      );
     } catch (err) {
       this.logger.warn(`WS welcome send failed: ${String(err)}`);
     }
@@ -44,7 +44,6 @@ export class TasksGateway {
   afterInit(server: Server): void {
     this.server = server;
     try {
-      // подписчик Redis для получения публикаций и ретрансляции в WebSocket
       const sub = this.redis.getClient().duplicate();
       sub.on('error', (err) => this.logger.warn(`Redis sub error: ${String(err)}`));
       sub
@@ -67,7 +66,9 @@ export class TasksGateway {
         .catch((err) => this.logger.warn(`Redis sub connect failed: ${String(err)}`));
       this.server.on('connection', (client: WebSocket) => {
         try {
-          client.send(JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }));
+          client.send(
+            JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }),
+          );
         } catch (err) {
           this.logger.warn(`WS connection welcome failed: ${String(err)}`);
         }

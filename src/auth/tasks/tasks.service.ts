@@ -142,6 +142,7 @@ export class TasksService {
         const existing = await this.findById(id, userId);
 
         // дефолты
+
         let listId: number | null = null;
         if (Object.prototype.hasOwnProperty.call(dto, 'listId')) {
             if (dto.listId === null || dto.listId === undefined) {
@@ -167,6 +168,17 @@ export class TasksService {
 
         const saved = await this.tasksRepo.save(existing);
         this.gateway.emitTaskUpdated({ action: 'put', task: saved });
+        return saved;
+    }
+
+    // отправка события только новому владельцу при переназначении
+    async assignToUser(id: number, assigneeUserId: number, currentUserId: number): Promise<Task> {
+        const task = await this.findById(id, currentUserId);
+        if (task.userId === assigneeUserId) return task;
+        task.userId = assigneeUserId;
+        task.listId = null;
+        const saved = await this.tasksRepo.save(task);
+        this.gateway.emitTaskUpdated({ action: 'patch', task: saved });
         return saved;
     }
 
