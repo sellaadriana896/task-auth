@@ -2,27 +2,27 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
-import * as fingerprint from 'express-fingerprint';
 import { WsAdapter } from '@nestjs/platform-ws';
 
 async function bootstrap() {
-
-  console.log('[DB env]', {
-    DB_TYPE: process.env.DB_TYPE || 'postgres',
-    DB_HOST: process.env.DB_HOST || 'localhost',
-    DB_PORT: process.env.DB_PORT || '5432',
-    DB_USER: process.env.DB_USER || 'postgres',
-    DB_PASS_set: !!(process.env.DB_PASS && process.env.DB_PASS.length > 0),
-    DB_NAME: process.env.DB_NAME || 'task_auth',
-  });
-  const fingerprint = require('express-fingerprint');
   const app = await NestFactory.create(AppModule);
-  app.enableCors ({
-    origin: 'http://localhost:3000',
+  const originsRaw = process.env.CORS_ORIGINS ?? process.env.FRONTEND_ORIGIN ?? 'http://localhost:3000';
+  const allowedOrigins = originsRaw.split(',').map((s) => s.trim()).filter(Boolean);
+  app.enableCors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   });
   app.useWebSocketAdapter(new WsAdapter(app));
-  app.use(fingerprint());
+  if (process.env.ENABLE_FINGERPRINT === 'true') {
+    // включаем только при явном флаге, иначе отключено на дев/прод
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fp = require('express-fingerprint');
+    app.use(fp());
+  }
   app.use(cookieParser()); 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true, }));
   await app.listen(process.env.PORT ?? 3000);
