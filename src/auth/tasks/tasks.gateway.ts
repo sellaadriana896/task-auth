@@ -3,7 +3,6 @@ import type { Server } from 'ws';
 import { WebSocket } from 'ws';
 import { Logger } from '@nestjs/common';
 import type { Task } from './entities/task.entity';
-import { RedisService } from '../../redis/redis.service';
 
 @WebSocketGateway({
   cors: {
@@ -15,7 +14,7 @@ export class TasksGateway {
   @WebSocketServer()
   server!: Server;
   private readonly logger = new Logger(TasksGateway.name);
-  constructor(private readonly redis: RedisService) {}
+  constructor() {}
 
   emitTaskUpdated(payload: { action: 'patch' | 'put'; task: Task }) {
     if (!this.server) return;
@@ -27,9 +26,6 @@ export class TasksGateway {
         this.logger.warn(`WS broadcast send failed: ${String(err)}`);
       }
     });
-    this.redis
-      .publish('ws:task.updated', message)
-      .catch((err) => this.logger.warn(`Redis publish failed: ${String(err)}`));
   }
 
   handleConnection(client: WebSocket): void {
@@ -44,26 +40,6 @@ export class TasksGateway {
   afterInit(server: Server): void {
     this.server = server;
     try {
-      const sub = this.redis.getClient().duplicate();
-      sub.on('error', (err) => this.logger.warn(`Redis sub error: ${String(err)}`));
-      sub
-        .connect()
-        .then(() => {
-          sub.subscribe('ws:task.updated', () => {
-            this.logger.log('Subscribed to ws:task.updated');
-          });
-          sub.on('message', (_channel, message) => {
-            const m = typeof message === 'string' ? message : String(message);
-            this.server.clients.forEach((client: WebSocket) => {
-              try {
-                if (client.readyState === WebSocket.OPEN) client.send(m);
-              } catch (err) {
-                this.logger.warn(`WS broadcast from Redis failed: ${String(err)}`);
-              }
-            });
-          });
-        })
-        .catch((err) => this.logger.warn(`Redis sub connect failed: ${String(err)}`));
       this.server.on('connection', (client: WebSocket) => {
         try {
           client.send(
