@@ -171,16 +171,7 @@ export class TasksService {
         return saved;
     }
 
-    // отправка события только новому владельцу
-    async assignToUser(id: number, assigneeUserId: number, currentUserId: number): Promise<Task> {
-        const task = await this.findById(id, currentUserId);
-        if (task.userId === assigneeUserId) return task;
-        task.userId = assigneeUserId;
-        task.listId = null; // сбрасываем список, если он принадлежал старому владельцу
-        const saved = await this.tasksRepo.save(task);
-        this.gateway.emitTaskUpdated({ action: 'patch', task: saved });
-        return saved;
-    }
+    // метод переназначения исключён в широковещательной версии
 
     async remove(id: number, userId: number): Promise<void> {
         const task = await this.findById(id, userId);
