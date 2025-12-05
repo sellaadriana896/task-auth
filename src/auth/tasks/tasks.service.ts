@@ -171,7 +171,16 @@ export class TasksService {
         return saved;
     }
 
-    // метод переназначения исключён в широковещательной версии
+    // отправка события только новому владельцу при переназначении
+    async assignToUser(id: number, assigneeUserId: number, currentUserId: number): Promise<Task> {
+        const task = await this.findById(id, currentUserId);
+        if (task.userId === assigneeUserId) return task;
+        task.userId = assigneeUserId;
+        task.listId = null;
+        const saved = await this.tasksRepo.save(task);
+        this.gateway.emitTaskUpdated({ action: 'patch', task: saved });
+        return saved;
+    }
 
     async remove(id: number, userId: number): Promise<void> {
         const task = await this.findById(id, userId);

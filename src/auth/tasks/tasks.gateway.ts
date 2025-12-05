@@ -14,42 +14,87 @@ export class TasksGateway {
   @WebSocketServer()
   server!: Server;
   private readonly logger = new Logger(TasksGateway.name);
-  // широковещательная модель: без привязки к userId
+  private readonly userSockets = new Map<number, Set<WebSocket>>();
 
   emitTaskUpdated(payload: { action: 'patch' | 'put'; task: Task }) {
-    // широковещательно всем подключенным клиентам
-    if (!this.server) return;
+    // отправляем только пользователю, которому назначена задача
+    const userId = payload?.task?.userId;
+    if (!Number.isFinite(userId)) {
+      this.logger.warn('emitTaskUpdated: missing userId, suppressing broadcast');
+      return;
+    }
+    const sockets = this.userSockets.get(Number(userId));
+    if (!sockets || sockets.size === 0) {
+      this.logger.warn(`emitTaskUpdated: no clients for userId=${userId}`);
+      return;
+    }
     const message = JSON.stringify({ event: 'task.updated', data: payload });
-    this.server.clients.forEach((client) => {
+    sockets.forEach((client) => {
       try {
-        if ((client as WebSocket).readyState === WebSocket.OPEN) {
-          (client as WebSocket).send(message);
-        }
+        if (client.readyState === WebSocket.OPEN) client.send(message);
       } catch (err) {
-        this.logger.warn(`WS broadcast failed: ${String(err)}`);
+        this.logger.warn(`WS targeted send failed: ${String(err)}`);
       }
     });
   }
 
-  handleConnection(client: WebSocket): void {
+  handleConnection(client: WebSocket, req?: any): void {
     try {
+      // идентификация по ws://.../?userId=123
+      const url = new URL(req?.url ?? '/', 'http://localhost');
+      const uidStr = url.searchParams.get('userId');
+      const userId = uidStr ? Number(uidStr) : undefined;
+      if (userId && Number.isFinite(userId)) {
+        let set = this.userSockets.get(userId);
+        if (!set) {
+          set = new Set<WebSocket>();
+          this.userSockets.set(userId, set);
+        }
+        set.add(client);
+        client.on('close', () => {
+          const s = this.userSockets.get(userId);
+          if (s) {
+            s.delete(client);
+            if (s.size === 0) this.userSockets.delete(userId);
+          }
+        });
+      }
       client.send(
         JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }),
       );
     } catch (err) {
-      this.logger.warn(`WS welcome failed: ${String(err)}`);
+      this.logger.warn(`WS welcome/identify failed: ${String(err)}`);
     }
   }
   afterInit(server: Server): void {
     this.server = server;
     try {
-      this.server.on('connection', (client: WebSocket) => {
+      this.server.on('connection', (client: WebSocket, req) => {
         try {
+          // дублирование идентификации
+          const url = new URL(req?.url ?? '/', 'http://localhost');
+          const uidStr = url.searchParams.get('userId');
+          const userId = uidStr ? Number(uidStr) : undefined;
+          if (userId && Number.isFinite(userId)) {
+            let set = this.userSockets.get(userId);
+            if (!set) {
+              set = new Set<WebSocket>();
+              this.userSockets.set(userId, set);
+            }
+            set.add(client);
+            client.on('close', () => {
+              const s = this.userSockets.get(userId);
+              if (s) {
+                s.delete(client);
+                if (s.size === 0) this.userSockets.delete(userId);
+              }
+            });
+          }
           client.send(
             JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }),
           );
         } catch (err) {
-          this.logger.warn(`WS connection welcome failed: ${String(err)}`);
+          this.logger.warn(`WS connection welcome/identify failed: ${String(err)}`);
         }
       });
     } catch (err) {
