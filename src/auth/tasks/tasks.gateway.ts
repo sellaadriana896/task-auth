@@ -1,5 +1,9 @@
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import type { Server } from 'ws';
+import { WebSocket } from 'ws';
+import { Logger } from '@nestjs/common';
+import type { Task } from './entities/task.entity';
+import { RedisService } from '../../redis/redis.service';
 
 @WebSocketGateway({
   cors: {
@@ -10,41 +14,66 @@ import type { Server } from 'ws';
 export class TasksGateway {
   @WebSocketServer()
   server!: Server;
+  private readonly logger = new Logger(TasksGateway.name);
+  constructor(private readonly redis: RedisService) {}
 
-  emitTaskUpdated(payload: any) {
+  emitTaskUpdated(payload: { action: 'patch' | 'put'; task: Task }) {
     // шлем всем подключённым клиентам событие task.updated c джейсоном
     if (!this.server) return;
-    this.server.clients.forEach((client: any) => {
+    const message = JSON.stringify({ event: 'task.updated', data: payload });
+    // Локальное широковещание
+    this.server.clients.forEach((client: WebSocket) => {
       try {
-        client.send(JSON.stringify({ event: 'task.updated', data: payload }));
-      } catch {}
+        if (client.readyState === WebSocket.OPEN) client.send(message);
+      } catch (err) {
+        this.logger.warn(`WS broadcast send failed: ${String(err)}`);
+      }
     });
+    // Публикация в Redis (для масштабирования через Pub/Sub)
+    this.redis
+      .publish('ws:task.updated', message)
+      .catch((err) => this.logger.warn(`Redis publish failed: ${String(err)}`));
   }
-  handleConnection(client: any): void {
+  handleConnection(client: WebSocket): void {
     try {
-      client.send(
-        JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }),
-      );
-    } catch {
-      // игнор
+      client.send(JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }));
+    } catch (err) {
+      this.logger.warn(`WS welcome send failed: ${String(err)}`);
     }
   }
   afterInit(server: Server): void {
     this.server = server;
     try {
-      this.server.on('connection', (client: any) => {
+      // подписчик Redis для получения публикаций и ретрансляции в WebSocket
+      const sub = this.redis.getClient().duplicate();
+      sub.on('error', (err) => this.logger.warn(`Redis sub error: ${String(err)}`));
+      sub
+        .connect()
+        .then(() => {
+          sub.subscribe('ws:task.updated', () => {
+            this.logger.log('Subscribed to ws:task.updated');
+          });
+          sub.on('message', (_channel, message) => {
+            const m = typeof message === 'string' ? message : String(message);
+            this.server.clients.forEach((client: WebSocket) => {
+              try {
+                if (client.readyState === WebSocket.OPEN) client.send(m);
+              } catch (err) {
+                this.logger.warn(`WS broadcast from Redis failed: ${String(err)}`);
+              }
+            });
+          });
+        })
+        .catch((err) => this.logger.warn(`Redis sub connect failed: ${String(err)}`));
+      this.server.on('connection', (client: WebSocket) => {
         try {
-          if (client && typeof client.send === 'function') {
-            client.send(
-              JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }),
-            );
-          }
-        } catch {
-          // игнор
+          client.send(JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }));
+        } catch (err) {
+          this.logger.warn(`WS connection welcome failed: ${String(err)}`);
         }
       });
-    } catch {
-      // игнор
+    } catch (err) {
+      this.logger.warn(`WS afterInit hookup failed: ${String(err)}`);
     }
   }
 }
