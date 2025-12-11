@@ -12,5 +12,3 @@ export class UpdateListDto {
   @Length(1, 100)
   name?: string;
 }
-
-

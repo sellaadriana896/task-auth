@@ -10,9 +10,9 @@ import { TasksGateway } from './tasks.gateway';
 import { AuthModule } from '../auth.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Task, TaskList]), AuthModule],
-    providers: [TasksService, TaskListsService, TasksGateway],
-    controllers: [TasksController, TaskListsController],
-    exports: [TypeOrmModule, TasksService, TaskListsService],
+  imports: [TypeOrmModule.forFeature([Task, TaskList]), AuthModule],
+  providers: [TasksService, TaskListsService, TasksGateway],
+  controllers: [TasksController, TaskListsController],
+  exports: [TypeOrmModule, TasksService, TaskListsService],
 })
 export class TasksModule {}
