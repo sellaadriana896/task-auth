@@ -23,10 +23,17 @@ export class TaskListsService {
   }
 
   async findAll(userId: number): Promise<TaskList[]> {
-    return this.listsRepo.find({ where: { userId }, order: { createdAt: 'ASC' } });
+    return this.listsRepo.find({
+      where: { userId },
+      order: { createdAt: 'ASC' },
+    });
   }
 
-  async update(id: number, dto: UpdateListDto, userId: number): Promise<TaskList> {
+  async update(
+    id: number,
+    dto: UpdateListDto,
+    userId: number,
+  ): Promise<TaskList> {
     const list = await this.findById(id, userId);
     if (dto.name != null) list.name = dto.name;
     return this.listsRepo.save(list);
