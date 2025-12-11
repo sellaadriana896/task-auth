@@ -1,0 +1,38 @@
+name: task-auth-stack
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskauth-postgres
+    ports:
+      - "5433:5432" # avoid conflict with local PG service
+    environment:
+      POSTGRES_USER: ${DB_USER:-task_user}
+      POSTGRES_PASSWORD: ${DB_PASS:-task_pass}
+      POSTGRES_DB: ${DB_NAME:-task_auth}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: taskauth-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
