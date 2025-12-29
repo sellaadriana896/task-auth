@@ -5,7 +5,6 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-// DeviceToken relation removed: sessions are stored in Redis
 
 @Entity()
 export class User {
@@ -17,6 +16,15 @@ export class User {
 
   @Column()
   passwordHash!: string;
+
+  @Column({ type: 'boolean', default: false })
+  isEmailVerified!: boolean;
+
+  @Column({ type: 'varchar', length: 32, nullable: true, unique: true })
+  phone: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  isPhoneVerified!: boolean;
 
   @CreateDateColumn()
   createdAt!: Date;

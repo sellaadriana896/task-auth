@@ -189,10 +189,14 @@ export class AuthService {
     return this.jwt.sign(payload, { secret, expiresIn: ttlSeconds });
   }
 
-  async register(email: string, password: string): Promise<User> {
+  async register(email: string, password: string, phone?: string | null): Promise<User> {
     const existing = await this.users.findByEmail(email);
     if (existing) throw new ConflictException('Email already in use');
-    return this.users.createUser(email, password);
+    if (phone) {
+      const phoneOwner = await this.users.findByPhone(phone);
+      if (phoneOwner) throw new ConflictException('Phone already in use');
+    }
+    return this.users.createUser(email, password, phone ?? null);
   }
 
   async validateUser(email: string, password: string): Promise<User> {

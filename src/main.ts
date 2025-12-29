@@ -3,6 +3,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { WsAdapter } from '@nestjs/platform-ws';
+import { MicroserviceOptions } from '@nestjs/microservices';
+import { RmqServerOptionsService } from './common/rabbit/rabbit.server.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -37,6 +39,16 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Подключаем RMQ микросервис через централизованный сервис опций
+  const rmqOptions = app.get(RmqServerOptionsService).getOptions();
+  app.connectMicroservice<MicroserviceOptions>(rmqOptions);
+
+  // Сначала поднимаем HTTP сервер, затем запускаем микросервисы асинхронно
   await app.listen(process.env.PORT ?? 3000);
+  app
+    .startAllMicroservices()
+    .then(() => console.log('RMQ microservice started'))
+    .catch((e) => console.warn('RMQ microservice failed to start:', e));
 }
 bootstrap();
