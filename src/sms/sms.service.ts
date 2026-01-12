@@ -27,8 +27,11 @@ export class SmsService {
       `Sending SMS via sender to=${Array.isArray(options.to) ? options.to.join(',') : options.to} text="${options.text}"`,
     );
     const res = await this.sender.send({ to: options.to, text: options.text, from });
-    if (res.accepted) this.logger.log(`SMS sent id=${res.id || 'n/a'}`);
-    else this.logger.warn('SMS send declined');
+    if (res.accepted) {
+      this.logger.log(`SMS sent id=${res.id || 'n/a'}`);
+    } else {
+      this.logger.warn('SMS send declined');
+    }
     return res;
   }
 }

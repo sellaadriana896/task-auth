@@ -6,26 +6,7 @@ import { User } from '../users/user.entity';
 import { randomUUID as uuidv4 } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { TokenStoreService } from './token-store.service';
-
-function parseTtl(raw: string | undefined, fallbackSeconds: number): number {
-  if (!raw) return fallbackSeconds;
-  const match = raw.trim().match(/^(\d+)([smhd])?$/i);
-  if (!match) return fallbackSeconds;
-  const value = Number(match[1]);
-  const unit = match[2]?.toLowerCase();
-  switch (unit) {
-    case 's':
-      return value;
-    case 'm':
-      return value * 60;
-    case 'h':
-      return value * 3600;
-    case 'd':
-      return value * 86400;
-    default:
-      return value;
-  }
-}
+import { parseTtl } from '../common/ttl.util';
 
 @Injectable()
 export class AuthService {

@@ -5,7 +5,6 @@ import * as nodemailer from 'nodemailer';
 import { MailConsumer } from './mail.consumer';
 import { MailQueueService } from './mail.queue.service';
 import { MailService } from './mail.service';
-import { MailController } from './mail.controller';
 import { MAIL_TRANSPORT } from './mail.tokens';
 import { RabbitModule } from '../common/rabbit/rabbit.module';
 
@@ -16,7 +15,7 @@ export class MailModule {
     return {
       module: MailModule,
       imports: [ConfigModule, RabbitModule.forFeature([{ name: 'MAIL_QUEUE' }])],
-      controllers: [MailController, MailConsumer],
+      controllers: [MailConsumer],
       providers: [
         {
           provide: MAIL_TRANSPORT,
