@@ -1,19 +1,18 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { DeviceToken } from './device-token.entity';
 import { UsersModule } from '../users/users.module';
 import { JwtCookieGuard } from './guards/jwt-cookie.guard';
-
+import { AuthLogModule } from './auth-log.module';
+import { TokenStoreService } from './token-store.service';
 
 @Module({
   imports: [
     ConfigModule,
+    AuthLogModule,
     UsersModule,
-    TypeOrmModule.forFeature([DeviceToken]),
     JwtModule.registerAsync({
       imports: [UsersModule, ConfigModule],
       inject: [ConfigService],
@@ -22,12 +21,12 @@ import { JwtCookieGuard } from './guards/jwt-cookie.guard';
         const ttlSeconds = Number(raw.replace(/[^0-9]/g, '')) || 900;
         return {
           secret: config.get<string>('JWT_ACCESS_SECRET'),
-          signOptions: { expiresIn: ttlSeconds},
-        }
-      }    
-    })
+          signOptions: { expiresIn: ttlSeconds },
+        };
+      },
+    }),
   ],
-  providers: [AuthService, JwtCookieGuard],
+  providers: [AuthService, JwtCookieGuard, TokenStoreService],
   controllers: [AuthController],
   exports: [AuthService, JwtCookieGuard, JwtModule],
 })

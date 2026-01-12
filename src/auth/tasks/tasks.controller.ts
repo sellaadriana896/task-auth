@@ -1,4 +1,4 @@
-import { 
+import {
   Controller,
   Post,
   Get,
@@ -14,7 +14,12 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { TasksService } from './tasks.service';
-import { CreateTaskDto, UpdateTaskDto, QueryTasksDto, PutTaskDto } from './dto/task.dto';
+import {
+  CreateTaskDto,
+  UpdateTaskDto,
+  QueryTasksDto,
+  PutTaskDto,
+} from './dto/task.dto';
 import { JwtCookieGuard } from '../guards/jwt-cookie.guard';
 
 @UseGuards(JwtCookieGuard)
@@ -31,21 +36,18 @@ export class TasksController {
 
   // получить одну задачу по id
   @Get(':id')
-  async getOne(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
-  ) {
+  async getOne(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
     const userId = (req as any).user.id;
     const task = await this.tasks.findById(id, userId);
     return { task };
   }
 
-  // запрос списка задач с фильтрами 
+  // запрос списка задач с фильтрами
   @Get()
   async query(@Query() query: QueryTasksDto, @Req() req: Request) {
     const userId = (req as any).user.id;
     const result = await this.tasks.query(query, userId);
-    return result; // data total 
+    return result; // data total
   }
 
   // обновить задачу
@@ -67,12 +69,13 @@ export class TasksController {
       Object.prototype.hasOwnProperty.call(dto, 'listId') ? true : undefined, // линтеры ругаются на такую конструкцию
     ].some((v) => v !== undefined);
     if (!hasAnyField) {
-      throw new (await import('@nestjs/common')).BadRequestException('Empty patch: no fields to update');
+      throw new (await import('@nestjs/common')).BadRequestException(
+        'Empty patch: no fields to update',
+      );
     }
     const task = await this.tasks.update(id, dto, userId);
     return { task };
   }
-
 
   @Put(':id')
   async replace(
@@ -87,10 +90,7 @@ export class TasksController {
 
   // удалить задачу
   @Delete(':id')
-  async delete(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
-  ) {
+  async delete(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
     const userId = (req as any).user.id;
     await this.tasks.remove(id, userId);
     return { success: true };

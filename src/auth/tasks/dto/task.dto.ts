@@ -1,4 +1,12 @@
-import { IsOptional, IsString, Length, IsDateString, IsInt, Min, IsIn } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  Length,
+  IsDateString,
+  IsInt,
+  Min,
+  IsIn,
+} from 'class-validator';
 import { TASK_STATUS, type TaskStatus } from '../enums/task-status.enum';
 import { TASK_PRIORITY, type TaskPriority } from '../enums/task-priority.enum';
 

@@ -35,7 +35,10 @@ export class TasksGateway {
   handleConnection(client: WebSocket): void {
     try {
       client.send(
-        JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }),
+        JSON.stringify({
+          event: 'socket.welcome',
+          data: { message: 'connected', ts: Date.now() },
+        }),
       );
     } catch (err) {
       this.logger.warn(`WS welcome send failed: ${String(err)}`);
@@ -67,7 +70,10 @@ export class TasksGateway {
       this.server.on('connection', (client: WebSocket) => {
         try {
           client.send(
-            JSON.stringify({ event: 'socket.welcome', data: { message: 'connected', ts: Date.now() } }),
+            JSON.stringify({
+              event: 'socket.welcome',
+              data: { message: 'connected', ts: Date.now() },
+            }),
           );
         } catch (err) {
           this.logger.warn(`WS connection welcome failed: ${String(err)}`);

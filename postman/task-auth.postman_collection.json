@@ -1,0 +1,132 @@
+{
+  "info": {
+    "name": "Task Auth API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "8a7c4c4d-1d7b-4a41-a437-3e2e7e2c1f5d"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "limit", "value": "10" }
+  ],
+  "item": [
+    {
+      "name": "Root /",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/", "host": ["{{baseUrl}}"], "path": [""] }
+      }
+    },
+    {
+      "name": "Auth /register",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"demo@example.com\",\n  \"password\": \"Passw0rd!\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth","register"] }
+      }
+    },
+    {
+      "name": "Auth /login",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"demo@example.com\",\n  \"password\": \"Passw0rd!\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const all = pm.response.headers.all().filter(h => h.key.toLowerCase() === 'set-cookie').map(h => h.value);",
+              "const simple = all.map(v => v.split(';')[0]);",
+              "if (simple.length) { pm.environment.set('cookieHeader', simple.join('; ')); }",
+              "const rt = simple.find(v => v.toLowerCase().startsWith('refreshtoken='));",
+              "const at = simple.find(v => v.toLowerCase().startsWith('accesstoken='));",
+              "if (rt) pm.environment.set('refreshTokenCookie', rt);",
+              "if (at) pm.environment.set('accessTokenCookie', at);",
+              "pm.test('Login returned cookies', function () { pm.expect(simple.length > 0).to.be.true; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth /refresh",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "{{cookieHeader}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth","refresh"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const all = pm.response.headers.all().filter(h => h.key.toLowerCase() === 'set-cookie').map(h => h.value);",
+              "const simple = all.map(v => v.split(';')[0]);",
+              "if (simple.length) { pm.environment.set('cookieHeader', simple.join('; ')); }",
+              "pm.test('Refresh updated cookies', function () { pm.expect(pm.response.code).to.equal(201).or.to.equal(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth /logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "{{cookieHeader}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"all\": false\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth","logout"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Logout ok', function () { pm.expect(pm.response.code).to.equal(201).or.to.equal(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth /logout-all",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cookie", "value": "{{cookieHeader}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": { "raw": "{{baseUrl}}/auth/logout-all", "host": ["{{baseUrl}}"], "path": ["auth","logout-all"] }
+      }
+    },
+    {
+      "name": "Auth /me",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Cookie", "value": "{{cookieHeader}}" } ],
+        "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth","me"] }
+      }
+    },
+    {
+      "name": "Auth /logs",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/auth/logs?limit={{limit}}", "host": ["{{baseUrl}}"], "path": ["auth","logs"], "query": [ { "key": "limit", "value": "{{limit}}" } ] }
+      }
+    }
+  ]
+}
