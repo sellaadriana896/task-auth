@@ -8,9 +8,10 @@ import { TaskListsService } from './task-lists.service';
 import { TaskListsController } from './task-lists.controller';
 import { TasksGateway } from './tasks.gateway';
 import { AuthModule } from '../auth.module';
+import { RedisModule } from '../../common/redis/redis.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, TaskList]), AuthModule],
+  imports: [TypeOrmModule.forFeature([Task, TaskList]), AuthModule, RedisModule],
   providers: [TasksService, TaskListsService, TasksGateway],
   controllers: [TasksController, TaskListsController],
   exports: [TypeOrmModule, TasksService, TaskListsService],
