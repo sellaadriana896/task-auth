@@ -2,17 +2,21 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Task } from './entities/task.entity';
 import { TaskList } from './entities/task-entities';
+import { Tag } from './entities/tag.entity';
 import { TasksService } from './tasks.service';
 import { TasksController } from './tasks.controller';
 import { TaskListsService } from './task-lists.service';
 import { TaskListsController } from './task-lists.controller';
+import { TagsService } from './tags.service';
+import { TagsController } from './tags.controller';
 import { TasksGateway } from './tasks.gateway';
 import { AuthModule } from '../auth.module';
+import { RedisModule } from '../../common/redis/redis.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, TaskList]), AuthModule],
-  providers: [TasksService, TaskListsService, TasksGateway],
-  controllers: [TasksController, TaskListsController],
-  exports: [TypeOrmModule, TasksService, TaskListsService],
+  imports: [TypeOrmModule.forFeature([Task, TaskList, Tag]), AuthModule, RedisModule],
+  providers: [TasksService, TaskListsService, TagsService, TasksGateway],
+  controllers: [TasksController, TaskListsController, TagsController],
+  exports: [TypeOrmModule, TasksService, TaskListsService, TagsService],
 })
 export class TasksModule {}
