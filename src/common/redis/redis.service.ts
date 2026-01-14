@@ -1,6 +1,6 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient, RedisClientType, type RedisArgument } from 'redis';
+import { createClient, RedisClientType } from 'redis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -41,11 +41,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     maxLen: number,
     fields: Record<string, string>,
   ) {
-    const map: Record<string, RedisArgument> = {};
-    for (const [k, v] of Object.entries(fields)) {
-      map[k] = v as RedisArgument;
-    }
-    return this.client.xAdd(key, '*', map, {
+    const map: Record<string, any> = { ...fields };
+    return (this.client as any).xAdd(key, '*', map, {
       TRIM: { strategy: 'MAXLEN', strategyModifier: '~', threshold: maxLen },
     });
   }

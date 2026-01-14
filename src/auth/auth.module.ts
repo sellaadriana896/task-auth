@@ -7,6 +7,9 @@ import { UsersModule } from '../users/users.module';
 import { JwtCookieGuard } from './guards/jwt-cookie.guard';
 import { AuthLogModule } from './auth-log.module';
 import { TokenStoreService } from './token-store.service';
+import { EmailVerificationService } from './email-verification.service';
+import { MailModule } from '../mail/mail.module';
+import { PhoneVerificationService } from './phone-verification.service';
 
 @Module({
   imports: [
@@ -26,7 +29,7 @@ import { TokenStoreService } from './token-store.service';
       },
     }),
   ],
-  providers: [AuthService, JwtCookieGuard, TokenStoreService],
+  providers: [AuthService, JwtCookieGuard, TokenStoreService, EmailVerificationService, PhoneVerificationService],
   controllers: [AuthController],
   exports: [AuthService, JwtCookieGuard, JwtModule],
 })

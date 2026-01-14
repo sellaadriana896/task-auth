@@ -7,6 +7,9 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TasksModule } from './auth/tasks/tasks.module';
 import { RedisModule } from './common/redis/redis.module';
+import { MailModule } from './mail/mail.module';
+import { RabbitServerModule } from './common/rabbit/rabbit.server.module';
+import { SmsModule } from './sms/sms.module';
 
 @Module({
   imports: [
@@ -43,6 +46,9 @@ import { RedisModule } from './common/redis/redis.module';
     UsersModule,
     TasksModule,
     RedisModule,
+    RabbitServerModule,
+    MailModule.forRoot(),
+    SmsModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],

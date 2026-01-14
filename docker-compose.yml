@@ -4,7 +4,7 @@ services:
     image: postgres:16-alpine
     container_name: taskauth-postgres
     ports:
-      - "5433:5432" # avoid conflict with local PG service
+      - "5433:5432" 
     environment:
       POSTGRES_USER: ${DB_USER:-task_user}
       POSTGRES_PASSWORD: ${DB_PASS:-task_pass}
@@ -31,6 +31,27 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: taskauth-rabbitmq
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: taskauth-mailpit
+    ports:
+      - "8025:8025"    # Web UI
+      - "1025:1025"    # SMTP
     restart: unless-stopped
 
 volumes:
