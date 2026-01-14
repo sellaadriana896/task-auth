@@ -3,7 +3,7 @@ import type { Server } from 'ws';
 import { WebSocket } from 'ws';
 import { Logger } from '@nestjs/common';
 import type { Task } from './entities/task.entity';
-import { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../../common/redis/redis.service';
 
 @WebSocketGateway({
   cors: {

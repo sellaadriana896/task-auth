@@ -28,6 +28,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.client;
   }
 
+  async ping(): Promise<string> {
+    return this.client.ping();
+  }
+
+  async publish(channel: string, message: string): Promise<number> {
+    return this.client.publish(channel, message);
+  }
+
   async xaddTrimmed(
     key: string,
     maxLen: number,
