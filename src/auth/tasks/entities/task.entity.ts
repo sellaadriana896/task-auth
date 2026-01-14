@@ -3,15 +3,12 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  ManyToMany,
-  JoinTable,
   CreateDateColumn,
   UpdateDateColumn,
   Index,
 } from 'typeorm';
 import { TaskList } from './task-entities';
 import { User } from '../../../users/user.entity';
-import { Tag } from './tag.entity';
 import { TASK_STATUS, type TaskStatus } from '../enums/task-status.enum';
 import { TASK_PRIORITY, type TaskPriority } from '../enums/task-priority.enum';
 
@@ -48,10 +45,6 @@ export class Task {
 
   @ManyToOne(() => TaskList, { onDelete: 'SET NULL', nullable: true })
   list?: TaskList | null;
-
-  @ManyToMany(() => Tag, (tag) => tag.tasks)
-  @JoinTable()
-  tags!: Tag[];
 
   @CreateDateColumn()
   createdAt!: Date;
